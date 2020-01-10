@@ -1,0 +1,17 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: basic-cluster
+  region: eu-central-1
+
+managedNodeGroups:
+  - name: managed-1
+    instanceType: t3.medium
+    minSize: 2
+    desiredCapacity: 3
+    maxSize: 3
+    availabilityZones: ["eu-central-1a", "eu-central-1b", "eu-central-1c"]
+    volumeSize: 20
+    ssh:
+      allow: false
