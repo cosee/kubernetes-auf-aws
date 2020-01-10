@@ -1,0 +1,93 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Stack for EKS Master plane"
+
+Parameters:
+    Stage:
+        Description: "Customer Environemt"
+        Type: String
+        ConstraintDescription: "Must be `staging`, `preprod` or `prod`."
+        AllowedValues:
+            - prod
+            - staging
+            - preprod
+    Version:
+        Type: String
+        Description: "k8s version"
+        ConstraintDescription: "available versions for k8s"
+        AllowedValues:
+            - "1.12"
+            - "1.13"
+            - "1.14"
+    VpcId:
+        Type: String
+        Description: VPC id
+    SubnetA:
+        Type: String
+        Description: Subnet A Id
+    SubnetB:
+        Type: String
+        Description: Subnet B Id
+    SubnetC:
+        Type: String
+        Description: Subnet C Id
+    ClusterName:
+        Type: String
+        Description: name for the cluster
+
+Resources:
+    ClusterSG:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: allow
+            VpcId: !Ref VpcId
+
+    AWSServiceRoleForAmazonEKS:
+        Type: AWS::IAM::Role
+        Properties:
+            RoleName: !Sub "${Stage}-eksServiceRole"
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: Allow
+                      Principal:
+                          Service:
+                              - eks.amazonaws.com
+                      Action:
+                          - sts:AssumeRole
+            ManagedPolicyArns:
+                - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+                - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+
+    EKS:
+        Type: AWS::EKS::Cluster
+        Properties:
+            Name: !Ref ClusterName
+            ResourcesVpcConfig:
+                SecurityGroupIds:
+                    - !GetAtt ClusterSG.GroupId
+                SubnetIds:
+                    - !Ref SubnetA
+                    - !Ref SubnetB
+                    - !Ref SubnetC
+            RoleArn: !GetAtt AWSServiceRoleForAmazonEKS.Arn
+            Version: !Ref Version
+
+Outputs:
+    EKSServiceRoleArn:
+        Description: The role that EKS will use to create AWS resources for Kubernetes clusters
+        Value: !GetAtt AWSServiceRoleForAmazonEKS.Arn
+        Export:
+            Name: !Sub ${Stage}-EKS-Cluster-Service-Role-Arn
+
+    ClusterSG:
+        Description: Blank security group to access EKS
+        Value: !GetAtt ClusterSG.GroupId
+        Export:
+            Name: !Sub ${Stage}-EKS-Cluster-SecurityGroup-ID
+
+    ClusterName:
+        Description: Name of cluster
+        Value: !Ref EKS
+        Export:
+            Name: !Sub ${Stage}-EKS-Cluster-Name

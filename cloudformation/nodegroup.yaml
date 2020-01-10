@@ -1,0 +1,70 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Amazon EKS - Node Group
+
+Parameters:
+  Stage:
+    Description: "Customer Environemt"
+    Type: String
+    ConstraintDescription: "Must be `staging`, `preprod` or `prod`."
+    AllowedValues:
+      - prod
+      - staging
+      - preprod
+  DiskSize:
+    Type: Number
+    Description: Size of root volumes
+    Default: 20
+  InstanceType:
+    Type: String
+    Description: Instance type of node group (currently only one supported)
+    Default: "t3.medium"
+  SubnetA:
+    Type: String
+    Description: Subnet A Id
+  SubnetB:
+    Type: String
+    Description: Subnet B Id
+  SubnetC:
+    Type: String
+    Description: Subnet C Id
+
+Resources:
+  NodeInstanceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+        - "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+        - "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+      Path: /
+
+  NodeGroup:
+    Type: AWS::EKS::Nodegroup
+    Properties:
+      AmiType: "AL2_x86_64"
+      ClusterName:
+        Fn::ImportValue: !Sub "${Stage}-EKS-Cluster-Name"
+      DiskSize: !Ref DiskSize
+      ForceUpdateEnabled: false
+      InstanceTypes:
+        - !Ref InstanceType
+      NodegroupName: !Sub ${Stage}-nodes
+      NodeRole: !GetAtt NodeInstanceRole.Arn
+      ScalingConfig:
+        DesiredSize: 3
+        MaxSize: 3
+        MinSize: 2
+      Subnets:
+        - !Ref SubnetA
+        - !Ref SubnetB
+        - !Ref SubnetC
