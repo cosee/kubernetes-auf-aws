@@ -21,3 +21,6 @@ To play demo screencast run: `asciinema play eksctl_deploy.cast -i 5`
 
 To deploy run `deploy.sh`
 Deploys a simple VPC and EKS with one managed nodegroup. 
+Based on https://github.com/terraform-providers/terraform-provider-aws/tree/master/examples/eks-getting-started
+
+To play demo screencast run: `asciinema play terraform_deploy.cast -i 5`
